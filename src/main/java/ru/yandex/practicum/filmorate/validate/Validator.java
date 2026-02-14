@@ -1,7 +1,7 @@
 package ru.yandex.practicum.filmorate.validate;
 
 @FunctionalInterface
-public interface Validate<T> {
+public interface Validator<T> {
 
     void validate(T object);
 }

@@ -5,17 +5,19 @@ import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.InMemoryStorage;
 import ru.yandex.practicum.filmorate.validate.UserValidator;
-import ru.yandex.practicum.filmorate.validate.Validate;
+import ru.yandex.practicum.filmorate.validate.Validator;
 
 import java.util.Collection;
 
 @RestController
 @Slf4j
 @RequestMapping("/users")
-public class UserController extends InMemoryStorageController<User> {
+public class UserController {
 
-    private static final Validate<User> validator = new UserValidator();
+    private final InMemoryStorage<User> storage = new InMemoryStorage<>();
+    private final Validator<User> validator = new UserValidator();
 
     @GetMapping
     public Collection<User> getAll() {
@@ -29,7 +31,7 @@ public class UserController extends InMemoryStorageController<User> {
         if (user.getName() == null) {
             user.setName(user.getLogin());
         }
-        user.setId(getNextId());
+        user.setId(storage.getNextId());
         storage.put(user.getId(), user);
         log.debug("Добавлен пользователь {}", user);
         return user;
@@ -53,25 +55,29 @@ public class UserController extends InMemoryStorageController<User> {
 
         User.UserBuilder builder = oldUser.toBuilder();
 
-        if (newUser.getName() != null) {
-            builder.name(newUser.getName());
-        }
-
-        if (newUser.getEmail() != null) {
-            builder.email(newUser.getEmail());
-        }
-
-        if (newUser.getLogin() != null) {
-            builder.login(newUser.getLogin());
-        }
-
-        if (newUser.getBirthday() != null) {
-            builder.birthday(newUser.getBirthday());
-        }
+        setBuilderFields(builder, newUser);
 
         validator.validate(builder.build());
         oldUser = builder.build();
         log.debug("изменен пользователь {}", oldUser);
         return oldUser;
+    }
+
+    private void setBuilderFields(User.UserBuilder builder, User user) {
+        if (user.getName() != null) {
+            builder.name(user.getName());
+        }
+
+        if (user.getEmail() != null) {
+            builder.email(user.getEmail());
+        }
+
+        if (user.getLogin() != null) {
+            builder.login(user.getLogin());
+        }
+
+        if (user.getBirthday() != null) {
+            builder.birthday(user.getBirthday());
+        }
     }
 }

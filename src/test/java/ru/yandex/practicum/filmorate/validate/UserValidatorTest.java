@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class UserValidatorTest {
 
-    private static final Validate<User> validator = new UserValidator();
+    private static final Validator<User> validator = new UserValidator();
     private static User.UserBuilder correctUserBuilder;
 
     @BeforeEach

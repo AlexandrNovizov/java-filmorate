@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class FilmValidatorTest {
 
-    private static final Validate<Film> validator = new FilmValidator();
+    private static final Validator<Film> validator = new FilmValidator();
     private static Film.FilmBuilder correctFilmBuilder = Film.builder()
             .name("name")
             .description("description")

@@ -7,7 +7,7 @@ import ru.yandex.practicum.filmorate.model.Film;
 import java.time.*;
 
 @Slf4j
-public class FilmValidator implements Validate<Film> {
+public class FilmValidator implements Validator<Film> {
 
     private static final int MAX_DESCRIPTION_LENGTH = 200;
     private static final LocalDate FIRST_FILM_RELEASE_DATE =
