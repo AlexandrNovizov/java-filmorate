@@ -58,10 +58,10 @@ public class UserController {
         setBuilderFields(builder, newUser);
 
         validator.validate(builder.build());
-        oldUser = builder.build();
-        log.debug("изменен пользователь {}", oldUser);
-        storage.put(oldUser.getId(), oldUser);
-        return oldUser;
+        User updatedUser = builder.build();
+        log.debug("изменен пользователь {}", updatedUser);
+        storage.put(updatedUser.getId(), updatedUser);
+        return updatedUser;
     }
 
     private void setBuilderFields(User.UserBuilder builder, User user) {

@@ -54,10 +54,10 @@ public class FilmController {
         setBuilderFields(builder, newFilm);
 
         validator.validate(builder.build());
-        oldFilm = builder.build();
-        log.info("обновлен фильм {}", oldFilm);
-        storage.put(oldFilm.getId(), oldFilm);
-        return oldFilm;
+        Film updatedFilm = builder.build();
+        log.info("обновлен фильм {}", updatedFilm);
+        storage.put(updatedFilm.getId(), updatedFilm);
+        return updatedFilm;
     }
 
     private void setBuilderFields(Film.FilmBuilder builder, Film film) {
