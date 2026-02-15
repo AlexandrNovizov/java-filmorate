@@ -56,6 +56,7 @@ public class FilmController {
         validator.validate(builder.build());
         oldFilm = builder.build();
         log.info("обновлен фильм {}", oldFilm);
+        storage.put(oldFilm.getId(), oldFilm);
         return oldFilm;
     }
 

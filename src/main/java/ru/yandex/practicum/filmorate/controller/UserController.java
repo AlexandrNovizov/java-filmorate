@@ -60,6 +60,7 @@ public class UserController {
         validator.validate(builder.build());
         oldUser = builder.build();
         log.debug("изменен пользователь {}", oldUser);
+        storage.put(oldUser.getId(), oldUser);
         return oldUser;
     }
 
