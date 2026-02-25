@@ -1,10 +1,12 @@
 package ru.yandex.practicum.filmorate.storage;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 
 @Slf4j
+@Component
 public class InMemoryStorage<T> extends HashMap<Long, T> {
 
     private long nextId = -1;
