@@ -6,19 +6,19 @@ import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.validate.Validator;
 
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class InMemoryFilmStorage implements Storage<Film, Long> {
+public class InMemoryFilmStorage implements FilmStorage {
 
-    private final InMemoryStorage<Film> storage;
+    private final Map<Long, Film> storage = new HashMap<>();
     private final Validator<Film> validator;
+
+    private long nextId = -1;
 
     @Override
     public Collection<Film> getAll() {
@@ -26,17 +26,14 @@ public class InMemoryFilmStorage implements Storage<Film, Long> {
     }
 
     @Override
-    public Film getById(Long id) {
-        Film film = storage.get(id);
-        if (film == null) {
-            throw new NotFoundException(String.format("фильм с id '%d' не найден", id));
-        }
-        return film;
+    public Optional<Film> getById(Long id) {
+        return Optional.ofNullable(storage.get(id));
     }
 
     @Override
     public Film create(Film newFilm) {
-        newFilm.setId(storage.getNextId());
+        newFilm.setId(getNextId());
+        newFilm.setLikes(new HashSet<>());
         validator.validate(newFilm);
         storage.put(newFilm.getId(), newFilm);
         return newFilm;
@@ -82,5 +79,18 @@ public class InMemoryFilmStorage implements Storage<Film, Long> {
         if (film.getDuration() != 0) {
             builder.duration(film.getDuration());
         }
+    }
+
+    private Long getNextId() {
+        log.trace("выполняется генерация id");
+        if (nextId < 0) {
+            nextId = storage.keySet().stream()
+                    .mapToLong(id -> id)
+                    .max()
+                    .orElse(0);
+        }
+
+        log.debug("сгенерирован id {}", nextId + 1);
+        return ++nextId;
     }
 }
