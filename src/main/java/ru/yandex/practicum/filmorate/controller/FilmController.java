@@ -1,80 +1,78 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
-import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.storage.InMemoryStorage;
-import ru.yandex.practicum.filmorate.validate.FilmValidator;
-import ru.yandex.practicum.filmorate.validate.Validator;
+import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.FilmService;
+import ru.yandex.practicum.filmorate.service.UserService;
 
 import java.util.Collection;
 
 @Slf4j
 @RestController
 @RequestMapping("/films")
+@RequiredArgsConstructor
 public class FilmController {
 
-    private final InMemoryStorage<Film> storage = new InMemoryStorage<>();
-    private final Validator<Film> validator = new FilmValidator();
+    private final FilmService filmService;
+    private final UserService userService;
 
     @GetMapping
     public Collection<Film> getAll() {
-        return storage.values();
+        return filmService.getAll();
+    }
+
+    @GetMapping("/{id}")
+    public Film getById(@PathVariable Long id) {
+        return filmService.getById(id);
+    }
+
+    @GetMapping("/popular")
+    public Collection<Film> getMostPopular(@RequestParam(value = "count", defaultValue = "10") Integer count) {
+        log.debug("получение {} самых популярных фильмов", count);
+        return filmService.getTopLikes(count);
     }
 
     @PostMapping
     public Film create(@RequestBody Film film) {
         log.debug("создание фильма {}", film);
-        validator.validate(film);
-        film.setId(storage.getNextId());
-        storage.put(film.getId(), film);
-        log.info("добавлен фильм {}", film);
-        return film;
+        Film createdFilm = filmService.create(film);
+        log.info("добавлен фильм {}", createdFilm);
+        return createdFilm;
     }
 
     @PutMapping
     public Film update(@RequestBody Film newFilm) {
         log.debug("обновление фильма {}", newFilm);
-        if (newFilm.getId() == null) {
-            log.warn("получен id == null");
-            throw new ValidationException("id не может быть пустым");
-        }
-
-        if (!storage.containsKey(newFilm.getId())) {
-            log.warn("фильм с id {} не найден", newFilm.getId());
-            throw new NotFoundException(String.format("фильм с id '%d' не найден", newFilm.getId()));
-        }
-
-        Film oldFilm = storage.get(newFilm.getId());
-
-        Film.FilmBuilder builder = oldFilm.toBuilder();
-
-        setBuilderFields(builder, newFilm);
-
-        validator.validate(builder.build());
-        Film updatedFilm = builder.build();
+        Film updatedFilm = filmService.update(newFilm);
         log.info("обновлен фильм {}", updatedFilm);
-        storage.put(updatedFilm.getId(), updatedFilm);
         return updatedFilm;
     }
 
-    private void setBuilderFields(Film.FilmBuilder builder, Film film) {
-        if (film.getName() != null) {
-            builder.name(film.getName());
-        }
+    @PutMapping("/{filmId}/like/{userId}")
+    public Film addLike(@PathVariable Long filmId,
+                        @PathVariable Long userId) {
 
-        if (film.getDescription() != null) {
-            builder.description(film.getDescription());
-        }
 
-        if (film.getReleaseDate() != null) {
-            builder.releaseDate(film.getReleaseDate());
-        }
+        Film film = filmService.getById(filmId);
+        User user = userService.getById(userId);
 
-        if (film.getDuration() != 0) {
-            builder.duration(film.getDuration());
-        }
+        filmService.addLike(film, user);
+        log.debug("пользователь {} поставил лайк фильму {}", user, film);
+        return film;
+    }
+
+    @DeleteMapping("/{filmId}/like/{userId}")
+    public Film removeLike(@PathVariable Long filmId,
+                           @PathVariable Long userId) {
+
+        Film film = filmService.getById(filmId);
+        User user = userService.getById(userId);
+
+        filmService.removeLike(film, user);
+        log.debug("пользователь {} удалил лайк фильму {}", user, film);
+        return film;
     }
 }
