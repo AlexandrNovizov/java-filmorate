@@ -3,10 +3,7 @@ package ru.yandex.practicum.filmorate.storage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.validate.Validator;
 
 import java.util.*;
 
@@ -16,7 +13,6 @@ import java.util.*;
 public class InMemoryUserStorage implements UserStorage {
 
     private final Map<Long, User> storage = new HashMap<>();
-    private final Validator<User> validator;
 
     private long nextId = -1;
 
@@ -32,57 +28,29 @@ public class InMemoryUserStorage implements UserStorage {
 
     @Override
     public User create(User newUser) {
-        newUser.setId(getNextId());
-        if (newUser.getName() == null) {
-            newUser.setName(newUser.getLogin());
-        }
-        newUser.setFriends(new HashSet<>());
-        validator.validate(newUser);
         storage.put(newUser.getId(), newUser);
         return newUser;
     }
 
     @Override
-    public User update(User user) {
-        if (user.getId() == null) {
-            log.warn("получен id == null");
-            throw new ValidationException("id не может быть пустым");
-        }
-        if (!storage.containsKey(user.getId())) {
-            log.warn("пользователь с id {} не найден", user.getId());
-            throw new NotFoundException(String.format("пользователь с id '%d' не найден", user.getId()));
-        }
-
-        User oldUser = storage.get(user.getId());
-        User.UserBuilder builder = oldUser.toBuilder();
-        setBuilderFields(builder, user);
-
-        validator.validate(builder.build());
-        User updatedUser = builder.build();
+    public User update(User updatedUser) {
         storage.put(updatedUser.getId(), updatedUser);
-
         return updatedUser;
     }
 
-    private void setBuilderFields(User.UserBuilder builder, User user) {
-        if (user.getName() != null) {
-            builder.name(user.getName());
-        }
-
-        if (user.getEmail() != null) {
-            builder.email(user.getEmail());
-        }
-
-        if (user.getLogin() != null) {
-            builder.login(user.getLogin());
-        }
-
-        if (user.getBirthday() != null) {
-            builder.birthday(user.getBirthday());
-        }
+    @Override
+    public void addToFriends(User user1, User user2) {
+        user1.getFriends().add(user2.getId());
+        user2.getFriends().add(user1.getId());
     }
 
-    private Long getNextId() {
+    @Override
+    public void removeFromFriends(User user1, User user2) {
+        user1.getFriends().remove(user2.getId());
+        user2.getFriends().remove(user1.getId());
+    }
+
+    public Long getNextId() {
         log.trace("выполняется генерация id");
         if (nextId < 0) {
             nextId = storage.keySet().stream()

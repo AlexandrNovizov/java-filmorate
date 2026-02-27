@@ -3,7 +3,6 @@ package ru.yandex.practicum.filmorate.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exception.InvalidParameterException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.FilmService;
@@ -32,10 +31,6 @@ public class FilmController {
 
     @GetMapping("/popular")
     public Collection<Film> getMostPopular(@RequestParam(value = "count", defaultValue = "10") Integer count) {
-        if (count <= 0) {
-            throw new InvalidParameterException("Параметр count должен быть положительным");
-        }
-
         log.debug("получение {} самых популярных фильмов", count);
         return filmService.getTopLikes(count);
     }
