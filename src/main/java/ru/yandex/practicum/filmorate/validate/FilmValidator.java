@@ -1,12 +1,14 @@
 package ru.yandex.practicum.filmorate.validate;
 
 import lombok.extern.slf4j.Slf4j;
-import ru.yandex.practicum.filmorate.exceptions.ValidationException;
+import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.*;
 
 @Slf4j
+@Component
 public class FilmValidator implements Validator<Film> {
 
     private static final int MAX_DESCRIPTION_LENGTH = 200;

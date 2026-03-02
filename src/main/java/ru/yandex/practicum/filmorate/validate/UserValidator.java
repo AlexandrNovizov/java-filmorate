@@ -1,12 +1,14 @@
 package ru.yandex.practicum.filmorate.validate;
 
 import lombok.extern.slf4j.Slf4j;
-import ru.yandex.practicum.filmorate.exceptions.ValidationException;
+import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
 
 @Slf4j
+@Component
 public class UserValidator implements Validator<User> {
 
     @Override

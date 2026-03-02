@@ -1,38 +1,35 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
-import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.storage.InMemoryStorage;
-import ru.yandex.practicum.filmorate.validate.UserValidator;
-import ru.yandex.practicum.filmorate.validate.Validator;
+import ru.yandex.practicum.filmorate.service.UserService;
 
 import java.util.Collection;
 
 @RestController
 @Slf4j
 @RequestMapping("/users")
+@RequiredArgsConstructor
 public class UserController {
 
-    private final InMemoryStorage<User> storage = new InMemoryStorage<>();
-    private final Validator<User> validator = new UserValidator();
+    private final UserService service;
 
     @GetMapping
     public Collection<User> getAll() {
-        return storage.values();
+        return service.getAll();
+    }
+
+    @GetMapping("/{id}")
+    public User getById(@PathVariable Long id) {
+        return service.getById(id);
     }
 
     @PostMapping
     public User create(@RequestBody User user) {
         log.debug("создание пользователя {}", user);
-        validator.validate(user);
-        if (user.getName() == null) {
-            user.setName(user.getLogin());
-        }
-        user.setId(storage.getNextId());
-        storage.put(user.getId(), user);
+        user = service.create(user);
         log.debug("Добавлен пользователь {}", user);
         return user;
     }
@@ -40,45 +37,49 @@ public class UserController {
     @PutMapping
     public User update(@RequestBody User newUser) {
         log.debug("обновление пользователя {}", newUser);
-        if (newUser.getId() == null) {
-            log.warn("получен id == null");
-            throw new ValidationException("id не может быть пустым");
-        }
-
-        if (!storage.containsKey(newUser.getId())) {
-
-            log.warn("пользователь с id {} не найден", newUser.getId());
-            throw new NotFoundException(String.format("пользователь с id '%d' не найден", newUser.getId()));
-        }
-
-        User oldUser = storage.get(newUser.getId());
-
-        User.UserBuilder builder = oldUser.toBuilder();
-
-        setBuilderFields(builder, newUser);
-
-        validator.validate(builder.build());
-        User updatedUser = builder.build();
-        log.debug("изменен пользователь {}", updatedUser);
-        storage.put(updatedUser.getId(), updatedUser);
+        User updatedUser = service.update(newUser);
+        log.debug("обновлен пользователь {}", updatedUser);
         return updatedUser;
     }
 
-    private void setBuilderFields(User.UserBuilder builder, User user) {
-        if (user.getName() != null) {
-            builder.name(user.getName());
-        }
+    @GetMapping("/{id}/friends")
+    public Collection<User> getFriends(@PathVariable Long id) {
 
-        if (user.getEmail() != null) {
-            builder.email(user.getEmail());
-        }
+        User user = service.getById(id);
+        log.debug("получаем друзей {}", user);
+        return service.getFriends(user);
+    }
 
-        if (user.getLogin() != null) {
-            builder.login(user.getLogin());
-        }
+    @GetMapping("/{userId}/friends/common/{otherId}")
+    public Collection<User> getCommonFriends(@PathVariable Long userId,
+                                             @PathVariable Long otherId) {
 
-        if (user.getBirthday() != null) {
-            builder.birthday(user.getBirthday());
-        }
+        User user = service.getById(userId);
+        User other = service.getById(otherId);
+
+        log.debug("получаем общих друзей {} и {}", user, other);
+        return service.getCommonFriends(user, other);
+    }
+
+    @PutMapping("/{userId}/friends/{friendId}")
+    public void addFriend(@PathVariable Long userId,
+                          @PathVariable Long friendId) {
+
+        User user = service.getById(userId);
+        User friend = service.getById(friendId);
+
+        log.debug("добавляем {} в друзья {}", friend, user);
+        service.addToFriends(user, friend);
+    }
+
+    @DeleteMapping("/{userId}/friends/{friendId}")
+    public void deleteFriend(@PathVariable Long userId,
+                             @PathVariable Long friendId) {
+
+        User user = service.getById(userId);
+        User friend = service.getById(friendId);
+
+        log.debug("удаляем {} из друзей {}", friend, user);
+        service.removeFromFriends(user, friend);
     }
 }
