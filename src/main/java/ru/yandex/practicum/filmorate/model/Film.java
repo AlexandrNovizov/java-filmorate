@@ -6,6 +6,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -30,4 +31,8 @@ public class Film {
 
     @Builder.Default
     private Set<Long> likes = new HashSet<>();
+
+    public void setLikes(Collection<Long> likes) {
+        this.likes = new HashSet<>(likes);
+    }
 }

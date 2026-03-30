@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.InvalidParameterException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
@@ -18,11 +19,15 @@ import java.util.Optional;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class FilmService {
 
     private final FilmStorage storage;
     private final Validator<Film> validator;
+
+    public FilmService(@Qualifier("database") FilmStorage storage, Validator<Film> validator) {
+        this.storage = storage;
+        this.validator = validator;
+    }
 
     public Collection<Film> getAll() {
         return storage.getAll();
