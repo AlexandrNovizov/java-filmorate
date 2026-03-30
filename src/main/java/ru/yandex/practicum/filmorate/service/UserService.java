@@ -1,7 +1,7 @@
 package ru.yandex.practicum.filmorate.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
@@ -16,11 +16,15 @@ import java.util.Set;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class UserService {
 
     private final UserStorage storage;
     private final Validator<User> validator;
+
+    public UserService(@Qualifier("userDB") UserStorage storage, Validator<User> validator) {
+        this.storage = storage;
+        this.validator = validator;
+    }
 
     public Collection<User> getAll() {
         return storage.getAll();
@@ -69,18 +73,12 @@ public class UserService {
     }
 
     public Collection<User> getFriends(User user) {
-        return user.getFriends().stream()
-                .map(this::getById)
-                .toList();
+        return storage.getFriends(user);
     }
 
     public Collection<User> getCommonFriends(User user1, User user2) {
 
-        Set<Long> intersection = new HashSet<>(user1.getFriends());
-        intersection.retainAll(user2.getFriends());
-        return intersection.stream()
-                .map(this::getById)
-                .toList();
+        return storage.getCommonFriends(user1, user2);
     }
 
     private void setBuilderFields(User.UserBuilder builder, User user) {

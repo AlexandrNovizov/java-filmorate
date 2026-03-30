@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.storage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.*;
@@ -49,6 +50,28 @@ public class InMemoryUserStorage implements UserStorage {
     public void removeFromFriends(User user1, User user2) {
         user1.getFriends().remove(user2.getId());
         user2.getFriends().remove(user1.getId());
+    }
+
+    @Override
+    public Collection<User> getFriends(User user) {
+        return user.getFriends().stream()
+                .map(this::getByIdOrThrowException)
+                .toList();
+    }
+
+    @Override
+    public Collection<User> getCommonFriends(User user1, User user2) {
+        Set<Long> intersection = new HashSet<>(user1.getFriends());
+        intersection.retainAll(user2.getFriends());
+        return intersection.stream()
+                .map(this::getByIdOrThrowException)
+                .toList();
+    }
+
+    private User getByIdOrThrowException(Long userId) {
+        return getById(userId).orElseThrow(
+                () -> new NotFoundException(String.format("пользователь с id '%d' не найден", userId))
+        );
     }
 
     private Long getNextId() {

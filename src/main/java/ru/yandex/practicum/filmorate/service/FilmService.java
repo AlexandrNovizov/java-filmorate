@@ -23,7 +23,7 @@ public class FilmService {
     private final FilmStorage storage;
     private final Validator<Film> validator;
 
-    public FilmService(@Qualifier("database") FilmStorage storage, Validator<Film> validator) {
+    public FilmService(@Qualifier("filmDB") FilmStorage storage, Validator<Film> validator) {
         this.storage = storage;
         this.validator = validator;
     }

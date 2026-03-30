@@ -11,7 +11,7 @@ import java.time.ZoneId;
 import java.util.Collection;
 import java.util.Optional;
 
-@Repository("database")
+@Repository("filmDB")
 public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
 
     private static final String SELECT_ALL_QUERY = "SELECT * FROM film";
