@@ -28,6 +28,7 @@ public class InMemoryUserStorage implements UserStorage {
 
     @Override
     public User create(User newUser) {
+        newUser.setId(getNextId());
         storage.put(newUser.getId(), newUser);
         return newUser;
     }
@@ -50,7 +51,7 @@ public class InMemoryUserStorage implements UserStorage {
         user2.getFriends().remove(user1.getId());
     }
 
-    public Long getNextId() {
+    private Long getNextId() {
         log.trace("выполняется генерация id");
         if (nextId < 0) {
             nextId = storage.keySet().stream()

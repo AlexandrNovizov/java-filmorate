@@ -29,6 +29,7 @@ public class InMemoryFilmStorage implements FilmStorage {
 
     @Override
     public Film create(Film newFilm) {
+        newFilm.setId(getNextId());
         storage.put(newFilm.getId(), newFilm);
         return newFilm;
     }
@@ -49,7 +50,7 @@ public class InMemoryFilmStorage implements FilmStorage {
         film.getLikes().remove(user.getId());
     }
 
-    public Long getNextId() {
+    private Long getNextId() {
         log.trace("выполняется генерация id");
         if (nextId < 0) {
             nextId = storage.keySet().stream()

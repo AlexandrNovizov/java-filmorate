@@ -37,7 +37,6 @@ public class UserService {
     }
 
     public User create(User user) {
-        user.setId(storage.getNextId());
         if (user.getName() == null) {
             user.setName(user.getLogin());
         }

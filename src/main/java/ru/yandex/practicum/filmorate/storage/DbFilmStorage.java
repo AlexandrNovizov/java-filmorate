@@ -90,9 +90,4 @@ public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
     private Collection<Long> getLikesForFilmId(Long filmId) {
         return jdbc.queryForList(SELECT_LIKES_BY_FILM_ID_QUERY, Long.class, filmId);
     }
-
-    @Override
-    public Long getNextId() {
-        return jdbc.queryForObject("SELECT MAX(film_id) + 1 FROM film;", Long.class);
-    }
 }

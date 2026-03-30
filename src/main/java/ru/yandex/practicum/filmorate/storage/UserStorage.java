@@ -18,6 +18,4 @@ public interface UserStorage {
     void addToFriends(User user1, User user2);
 
     void removeFromFriends(User user1, User user2);
-
-    Long getNextId();
 }
