@@ -3,9 +3,11 @@ package ru.yandex.practicum.filmorate.storage;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.dto.FriendshipDto;
 import ru.yandex.practicum.filmorate.dto.FriendshipStatusDto;
 import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.mapper.FriendshipDtoMapper;
 import ru.yandex.practicum.filmorate.storage.mapper.FriendshipStatusMapper;
 
 import java.sql.Timestamp;
@@ -42,6 +44,7 @@ public class DbUserStorage extends BaseRepository<User> implements UserStorage {
             "WHERE user_id = ? AND friend_id = ?";
 
     private static final FriendshipStatusMapper friendshipStatusMapper = new FriendshipStatusMapper();
+    private static final FriendshipDtoMapper friendshipDtoMapper = new FriendshipDtoMapper();
 
     public DbUserStorage(JdbcTemplate jdbc, RowMapper<User> mapper) {
         super(jdbc, mapper);
@@ -49,12 +52,19 @@ public class DbUserStorage extends BaseRepository<User> implements UserStorage {
 
     @Override
     public Collection<User> getAll() {
-        List<User> allUsers = findMany(SELECT_ALL_QUERY);
+        Map<Long, User> allUsers = createMap(findMany(SELECT_ALL_QUERY));
 
-        for (var user: allUsers) {
-            user.setFriends(jdbc.queryForList(SELECT_FRIENDS_BY_ID_QUERY, Long.class, user.getId()));
+        String getFriendshipsQuery = "SELECT * FROM friend f JOIN status s ON f.status_id = s.status_id";
+
+        List<FriendshipDto> friendships = jdbc.query(getFriendshipsQuery, friendshipDtoMapper);
+
+        for (var friendship: friendships) {
+            if (allUsers.containsKey(friendship.getUserId())) {
+                allUsers.get(friendship.getUserId()).getFriends().add(friendship.getFriendId());
+            }
         }
-        return allUsers;
+
+        return allUsers.values();
     }
 
     @Override
@@ -94,24 +104,40 @@ public class DbUserStorage extends BaseRepository<User> implements UserStorage {
     public void addToFriends(User user1, User user2) {
         Map<FriendshipStatus, Long> statuses = getAllStatuses();
 
-        jdbc.update(
-                ADD_TO_FRIENDS_QUERY,
-                user1.getId(),
-                user2.getId(),
-                statuses.get(FriendshipStatus.PENDING)
-        );
+        String updateFriendshipQuery = "UPDATE friend SET status_id = " +
+                "(SELECT status_id from status WHERE status_name = 'ACCEPTED') " +
+                "WHERE user_id = ? AND friend_id = ?";
 
+        int updatedRows = jdbc.update(updateFriendshipQuery, user2.getId(), user1.getId());
+
+        if (updatedRows == 0) {
+            jdbc.update(
+                    ADD_TO_FRIENDS_QUERY,
+                    user1.getId(),
+                    user2.getId(),
+                    statuses.get(FriendshipStatus.PENDING)
+            );
+        }
+        // TODO: move this to service
         user1.getFriends().add(user2.getId());
     }
 
     @Override
     public void removeFromFriends(User user1, User user2) {
-        jdbc.update(
+        int removedRows = jdbc.update(
                 REMOVE_FROM_FRIENDS_QUERY,
                 user1.getId(),
                 user2.getId()
         );
 
+        if (removedRows > 0) {
+            String updateQuery = "UPDATE friend SET status_id = " +
+                    "(SELECT status_id FROM status WHERE status_name = 'DELETED') " +
+                    "WHERE user_id = ? AND friend_id = ?";
+
+            jdbc.update(updateQuery, user2.getId(), user1.getId());
+        }
+        // TODO: move this to service
         user1.getFriends().remove(user2.getId());
     }
 
@@ -148,5 +174,15 @@ public class DbUserStorage extends BaseRepository<User> implements UserStorage {
         }
 
         return result;
+    }
+
+    private Map<Long, User> createMap(List<User> users) {
+        Map<Long, User> map = new HashMap<>();
+
+        for (User user : users) {
+            map.put(user.getId(), user);
+        }
+
+        return map;
     }
 }

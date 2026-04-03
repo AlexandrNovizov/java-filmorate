@@ -1,5 +1,5 @@
 package ru.yandex.practicum.filmorate.model;
 
 public enum FriendshipStatus {
-    ACCEPTED, PENDING, REJECTED;
+    ACCEPTED, PENDING, REJECTED, DELETED;
 }

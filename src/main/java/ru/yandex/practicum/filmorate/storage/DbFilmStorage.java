@@ -25,7 +25,7 @@ public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
             "film_name = ?, rating_id = ?, description = ?, release_date = ?, duration = ? WHERE film_id = ?";
 
     private static final String ADD_LIKE_QUERY = "INSERT INTO \"like\" (user_id, film_id) VALUES (?, ?)";
-    private static final String REMOVE_LIKE_QUERY = "DROP FROM \"like\" WHERE user_id = ? AND film_id = ?";
+    private static final String REMOVE_LIKE_QUERY = "DELETE FROM \"like\" WHERE user_id = ? AND film_id = ?";
 
     public DbFilmStorage(JdbcTemplate jdbc, RowMapper<Film> mapper) {
         super(jdbc, mapper);
