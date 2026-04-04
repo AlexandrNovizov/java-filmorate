@@ -17,7 +17,7 @@ public class FilmRowMapper implements RowMapper<Film> {
         builder.id(rs.getLong("film_id"));
         builder.name(rs.getString("film_name"));
         builder.description(rs.getString("description"));
-
+        builder.ratingId(rs.getLong("rating_id"));
         Timestamp releaseDate = rs.getTimestamp("release_date");
         builder.releaseDate(releaseDate.toLocalDateTime().toLocalDate());
         return builder.build();

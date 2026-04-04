@@ -27,6 +27,8 @@ public class Film {
 
     private LocalDate releaseDate;
 
+    private Long ratingId;
+
     private int duration;
 
     @Builder.Default
