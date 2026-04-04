@@ -78,14 +78,7 @@ public class FilmService {
             throw new InvalidParameterException("Параметр count должен быть положительным");
         }
 
-        Comparator<Object> comparator = Comparator
-                .comparingInt(film -> ((Film) film).getLikes().size())
-                .reversed();
-
-        return storage.getAll().stream()
-                .sorted(comparator)
-                .limit(size)
-                .toList();
+        return storage.getTopLikes(size);
     }
 
     private void setBuilderFields(Film.FilmBuilder builder, Film film) {

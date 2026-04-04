@@ -160,4 +160,54 @@ class DbFilmStorageTest {
         assertThat(film.getLikes())
                 .matches(Collection::isEmpty);
     }
+
+    @Test
+    void testGetTopLikesShouldReturnMostLikedFilms() {
+        int filmsCount = 5;
+        int usersCount = 3;
+        int topLikesSize = 3;
+        for (int i = 0; i < filmsCount; i++) {
+            Film film = Film.builder()
+                    .name("test" + i)
+                    .releaseDate(LocalDate.now())
+                    .description("desc" + i)
+                    .build();
+
+            filmStorage.create(film);
+        }
+
+        for (int i = 0; i < usersCount; i++) {
+            User user = User.builder()
+                    .email(String.format("testuser%d@mail.ru", i))
+                    .login(String.format("testlogin%d", i))
+                    .name(String.format("testname%d", i))
+                    .birthday(LocalDate.now())
+                    .build();
+
+            userStorage.create(user);
+        }
+
+        User[] users = new User[usersCount];
+        userStorage.getAll().toArray(users);
+
+        Film[] films = new Film[filmsCount];
+        filmStorage.getAll().toArray(films);
+
+        filmStorage.addLike(films[2], users[0]);
+        filmStorage.addLike(films[3], users[0]);
+        filmStorage.addLike(films[2], users[1]);
+        filmStorage.addLike(films[3], users[1]);
+        filmStorage.addLike(films[2], users[2]);
+        filmStorage.addLike(films[4], users[2]);
+
+        Collection<Film> topLikes = filmStorage.getTopLikes(topLikesSize);
+
+        assertEquals(3, topLikes.size());
+
+        assertThat(topLikes.toArray())
+                .matches(top -> top[0].equals(films[2]))
+                .matches(top -> top[1].equals(films[3]))
+                .matches(top -> top[2].equals(films[4]));
+
+    }
 }

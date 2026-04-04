@@ -19,4 +19,6 @@ public interface FilmStorage {
     void addLike(Film film, User user);
 
     void removeLike(Film film, User user);
+
+    Collection<Film> getTopLikes(int size);
 }

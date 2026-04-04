@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import ru.yandex.practicum.filmorate.dto.RatingIdDto;
 
 import java.time.LocalDate;
 import java.util.Collection;
@@ -27,7 +28,7 @@ public class Film {
 
     private LocalDate releaseDate;
 
-    private Long ratingId;
+    private RatingIdDto mpa;
 
     private int duration;
 

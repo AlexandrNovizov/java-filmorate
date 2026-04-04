@@ -50,6 +50,18 @@ public class InMemoryFilmStorage implements FilmStorage {
         film.getLikes().remove(user.getId());
     }
 
+    @Override
+    public Collection<Film> getTopLikes(int size) {
+        Comparator<Object> comparator = Comparator
+                .comparingInt(film -> ((Film) film).getLikes().size())
+                .reversed();
+
+        return storage.values().stream()
+                .sorted(comparator)
+                .limit(size)
+                .toList();
+    }
+
     private Long getNextId() {
         log.trace("выполняется генерация id");
         if (nextId < 0) {
