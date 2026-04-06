@@ -3,14 +3,8 @@ package ru.yandex.practicum.filmorate.model;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import ru.yandex.practicum.filmorate.dto.GenreIdDto;
-import ru.yandex.practicum.filmorate.dto.RatingIdDto;
 
 import java.time.LocalDate;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * Film.

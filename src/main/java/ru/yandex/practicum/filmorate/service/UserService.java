@@ -12,7 +12,6 @@ import ru.yandex.practicum.filmorate.validate.Validator;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 
 @Service
 @Slf4j

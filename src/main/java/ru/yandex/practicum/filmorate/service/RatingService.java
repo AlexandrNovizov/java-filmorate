@@ -8,7 +8,6 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.storage.RatingStorage;
 
 import java.util.Collection;
-import java.util.Optional;
 
 @Service
 @Slf4j
