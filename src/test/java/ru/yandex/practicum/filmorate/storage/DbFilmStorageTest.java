@@ -7,6 +7,8 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.test.annotation.DirtiesContext;
+import ru.yandex.practicum.filmorate.dto.FilmDto;
+import ru.yandex.practicum.filmorate.dto.mapper.FilmDtoMapper;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 
@@ -29,13 +31,13 @@ class DbFilmStorageTest {
 
     @Test
     void testCreateUserShouldAddUser() {
-        Film film = Film.builder()
+        FilmDto film = FilmDto.builder()
                 .name("test")
                 .releaseDate(LocalDate.now())
                 .description("desc")
                 .build();
 
-        Collection<Film> films = filmStorage.getAll();
+        Collection<FilmDto> films = filmStorage.getAll();
         assertEquals(0, films.size());
 
         filmStorage.create(film);
@@ -46,7 +48,7 @@ class DbFilmStorageTest {
 
     @Test
     void testFindFilmByIdShouldReturnFilm() {
-        Film film = Film.builder()
+        FilmDto film = FilmDto.builder()
                 .name("test")
                 .releaseDate(LocalDate.now())
                 .description("desc")
@@ -56,7 +58,7 @@ class DbFilmStorageTest {
 
         long expectedId = 1L;
 
-        Optional<Film> filmOptional = filmStorage.getById(expectedId);
+        Optional<FilmDto> filmOptional = filmStorage.getById(expectedId);
 
         assertThat(filmOptional)
                 .isPresent()
@@ -68,27 +70,29 @@ class DbFilmStorageTest {
 
     @Test
     void testGetAllShouldReturnAllFilms() {
-        Film film1 = Film.builder()
+        FilmDto expected1 = FilmDto.builder()
+                .id(1L)
                 .name("test")
                 .releaseDate(LocalDate.now())
                 .description("desc")
                 .build();
 
-        Film film2 = Film.builder()
+        FilmDto expected2 = FilmDto.builder()
+                .id(2L)
                 .name("test2")
                 .releaseDate(LocalDate.now())
                 .description("desc2")
                 .build();
 
-        filmStorage.create(film1);
-        filmStorage.create(film2);
+        filmStorage.create(expected1);
+        filmStorage.create(expected2);
 
-        Collection<Film> films = filmStorage.getAll();
+        Collection<FilmDto> films = filmStorage.getAll();
 
         assertThat(films)
                 .matches(allUsers -> allUsers.size() == 2)
-                .matches(allUsers -> allUsers.contains(film1))
-                .matches(allUsers -> allUsers.contains(film2));
+                .matches(allUsers -> allUsers.contains(expected1))
+                .matches(allUsers -> allUsers.contains(expected2));
     }
 
     @Test
@@ -96,15 +100,15 @@ class DbFilmStorageTest {
         String initialName = "test";
         String updatedName = "updated test";
 
-        Film createdFilm = Film.builder()
+        FilmDto createdFilm = FilmDto.builder()
                 .name(initialName)
                 .releaseDate(LocalDate.now())
                 .description("desc")
                 .build();
 
-        filmStorage.create(createdFilm);
+        createdFilm = filmStorage.create(createdFilm);
         createdFilm.setName(updatedName);
-        Film updatedFilm = filmStorage.update(createdFilm);
+        FilmDto updatedFilm = filmStorage.update(createdFilm);
 
         assertThat(updatedFilm)
                 .matches(film -> film.getName().equals(updatedName));
@@ -119,13 +123,13 @@ class DbFilmStorageTest {
                 .birthday(LocalDate.now())
                 .build();
 
-        Film film = Film.builder()
+        FilmDto film = FilmDto.builder()
                 .name("test")
                 .releaseDate(LocalDate.now())
                 .description("desc")
                 .build();
 
-        filmStorage.create(film);
+        film = filmStorage.create(film);
         userStorage.create(user);
 
         filmStorage.addLike(film, user);
@@ -142,13 +146,13 @@ class DbFilmStorageTest {
                 .birthday(LocalDate.now())
                 .build();
 
-        Film film = Film.builder()
+        FilmDto film = FilmDto.builder()
                 .name("test")
                 .releaseDate(LocalDate.now())
                 .description("desc")
                 .build();
 
-        filmStorage.create(film);
+        film = filmStorage.create(film);
         userStorage.create(user);
 
         filmStorage.addLike(film, user);
@@ -167,7 +171,7 @@ class DbFilmStorageTest {
         int usersCount = 3;
         int topLikesSize = 3;
         for (int i = 0; i < filmsCount; i++) {
-            Film film = Film.builder()
+            FilmDto film = FilmDto.builder()
                     .name("test" + i)
                     .releaseDate(LocalDate.now())
                     .description("desc" + i)
@@ -190,7 +194,7 @@ class DbFilmStorageTest {
         User[] users = new User[usersCount];
         userStorage.getAll().toArray(users);
 
-        Film[] films = new Film[filmsCount];
+        FilmDto[] films = new FilmDto[filmsCount];
         filmStorage.getAll().toArray(films);
 
         filmStorage.addLike(films[2], users[0]);
@@ -200,7 +204,7 @@ class DbFilmStorageTest {
         filmStorage.addLike(films[2], users[2]);
         filmStorage.addLike(films[4], users[2]);
 
-        Collection<Film> topLikes = filmStorage.getTopLikes(topLikesSize);
+        Collection<FilmDto> topLikes = filmStorage.getTopLikes(topLikesSize);
 
         assertEquals(3, topLikes.size());
 

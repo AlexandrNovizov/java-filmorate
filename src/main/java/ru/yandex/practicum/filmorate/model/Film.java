@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import ru.yandex.practicum.filmorate.dto.GenreIdDto;
 import ru.yandex.practicum.filmorate.dto.RatingIdDto;
 
 import java.time.LocalDate;
@@ -16,7 +17,6 @@ import java.util.Set;
  */
 @Data
 @EqualsAndHashCode(of = "id")
-@ToString(exclude = "likes")
 @Builder(toBuilder = true)
 public class Film {
 
@@ -28,14 +28,7 @@ public class Film {
 
     private LocalDate releaseDate;
 
-    private RatingIdDto mpa;
+    private Long ratingId;
 
     private int duration;
-
-    @Builder.Default
-    private Set<Long> likes = new HashSet<>();
-
-    public void setLikes(Collection<Long> likes) {
-        this.likes = new HashSet<>(likes);
-    }
 }

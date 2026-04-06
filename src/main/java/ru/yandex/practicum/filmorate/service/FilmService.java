@@ -3,6 +3,8 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.dto.FilmDto;
+import ru.yandex.practicum.filmorate.dto.mapper.FilmDtoMapper;
 import ru.yandex.practicum.filmorate.exception.InvalidParameterException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
@@ -28,52 +30,58 @@ public class FilmService {
         this.validator = validator;
     }
 
-    public Collection<Film> getAll() {
+    public Collection<FilmDto> getAll() {
         return storage.getAll();
     }
 
-    public Optional<Film> getByIdOpt(Long filmId) {
+    public Optional<FilmDto> getByIdOpt(Long filmId) {
         return storage.getById(filmId);
     }
 
-    public Film getById(Long filmId) {
+    public FilmDto getById(Long filmId) {
         return getByIdOpt(filmId).orElseThrow(
                 () -> new NotFoundException(String.format("фильм с id '%d' не найден", filmId))
         );
     }
 
-    public Film create(Film film) {
-        film.setLikes(new HashSet<>());
-        validator.validate(film);
-        return storage.create(film);
+    public FilmDto create(FilmDto film) {
+        validator.validate(FilmDtoMapper.mapToFilm(film));
+        FilmDto dto = storage.create(film);
+        if (film.getGenres() == null) {
+            dto.setGenres(new HashSet<>());
+        }
+        if (film.getLikes() == null) {
+            dto.setLikes(new HashSet<>());
+        }
+        return dto;
     }
 
-    public Film update(Film film) {
+    public FilmDto update(Film film) {
         if (film.getId() == null) {
             log.warn("получен id == null");
             throw new ValidationException("id не может быть пустым");
         }
 
-        Film oldFilm = getById(film.getId());
+        FilmDto oldFilm = getById(film.getId());
 
-        Film.FilmBuilder builder = oldFilm.toBuilder();
+        FilmDto.FilmDtoBuilder builder = oldFilm.toBuilder();
 
         setBuilderFields(builder, film);
 
-        validator.validate(builder.build());
-        Film updatedFilm = builder.build();
+        validator.validate(FilmDtoMapper.mapToFilm(builder.build()));
+        FilmDto updatedFilm = builder.build();
         return storage.update(updatedFilm);
     }
 
-    public void addLike(Film film, User user) {
+    public void addLike(FilmDto film, User user) {
         storage.addLike(film, user);
     }
 
-    public void removeLike(Film film, User user) {
+    public void removeLike(FilmDto film, User user) {
         storage.removeLike(film, user);
     }
 
-    public Collection<Film> getTopLikes(int size) {
+    public Collection<FilmDto> getTopLikes(int size) {
         if (size <= 0) {
             throw new InvalidParameterException("Параметр count должен быть положительным");
         }
@@ -81,7 +89,7 @@ public class FilmService {
         return storage.getTopLikes(size);
     }
 
-    private void setBuilderFields(Film.FilmBuilder builder, Film film) {
+    private void setBuilderFields(FilmDto.FilmDtoBuilder builder, Film film) {
         if (film.getName() != null) {
             builder.name(film.getName());
         }

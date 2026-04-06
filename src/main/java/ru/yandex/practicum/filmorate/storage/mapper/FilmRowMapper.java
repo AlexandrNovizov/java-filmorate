@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.storage.mapper;
 
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.dto.GenreIdDto;
 import ru.yandex.practicum.filmorate.dto.RatingIdDto;
 import ru.yandex.practicum.filmorate.model.Film;
 
@@ -18,9 +19,8 @@ public class FilmRowMapper implements RowMapper<Film> {
         builder.id(rs.getLong("film_id"));
         builder.name(rs.getString("film_name"));
         builder.description(rs.getString("description"));
-        RatingIdDto mpa = new RatingIdDto();
-        mpa.setId(rs.getLong("rating_id"));
-        builder.mpa(mpa);
+        builder.duration(rs.getInt("duration"));
+        builder.ratingId(rs.getLong("rating_id"));
         Timestamp releaseDate = rs.getTimestamp("release_date");
         builder.releaseDate(releaseDate.toLocalDateTime().toLocalDate());
         return builder.build();

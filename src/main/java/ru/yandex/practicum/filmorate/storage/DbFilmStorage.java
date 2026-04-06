@@ -3,11 +3,13 @@ package ru.yandex.practicum.filmorate.storage;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
-import ru.yandex.practicum.filmorate.dto.LikeDto;
-import ru.yandex.practicum.filmorate.dto.RatingDto;
+import ru.yandex.practicum.filmorate.dto.*;
+import ru.yandex.practicum.filmorate.dto.mapper.FilmDtoMapper;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.mapper.FilmGenreDtoRowMapper;
+import ru.yandex.practicum.filmorate.storage.mapper.GenreDtoRowMapper;
 import ru.yandex.practicum.filmorate.storage.mapper.LikeDtoRowMapper;
 
 import java.sql.Timestamp;
@@ -19,6 +21,7 @@ import java.util.stream.Collectors;
 public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
 
     private final RatingStorage ratingStorage;
+    private final GenreStorage genreStorage;
 
     private static final String SELECT_ALL_QUERY = "SELECT * FROM film";
     private static final String SELECT_BY_ID_QUERY = "SELECT * FROM film WHERE film_id = ?";
@@ -33,14 +36,19 @@ public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
     private static final String ADD_LIKE_QUERY = "INSERT INTO \"like\" (user_id, film_id) VALUES (?, ?)";
     private static final String REMOVE_LIKE_QUERY = "DELETE FROM \"like\" WHERE user_id = ? AND film_id = ?";
 
-    public DbFilmStorage(JdbcTemplate jdbc, RowMapper<Film> filmMapper, RowMapper<RatingDto> ratingMapper) {
+    public DbFilmStorage(
+            JdbcTemplate jdbc,
+            RowMapper<Film> filmMapper,
+            RowMapper<RatingDto> ratingMapper,
+            RowMapper<GenreDto> genreMapper) {
         super(jdbc, filmMapper);
         ratingStorage = new DbRatingStorage(jdbc, ratingMapper);
+        genreStorage = new DbGenreStorage(jdbc, genreMapper);
     }
 
     @Override
-    public Collection<Film> getAll() {
-        Map<Long, Film> filmsMap = createMap(findMany(SELECT_ALL_QUERY));
+    public Collection<FilmDto> getAll() {
+        Map<Long, FilmDto> filmsMap = createFilmsMap(findMany(SELECT_ALL_QUERY));
         String getAllLikesQuery = "SELECT * FROM \"like\"";
 
         List<LikeDto> likes = jdbc.query(getAllLikesQuery, new LikeDtoRowMapper());
@@ -49,38 +57,82 @@ public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
             filmsMap.get(like.getFilmId()).getLikes().add(like.getUserId());
         }
 
+        Map<Long, GenreDto> genresMap = createGenresMap(
+                jdbc.query("SELECT * FROM genre", new GenreDtoRowMapper())
+        );
+
+        List<FilmGenreDto> genres = jdbc.query("SELECT * FROM film_genre", new FilmGenreDtoRowMapper());
+
+        for (FilmGenreDto genre : genres) {
+            filmsMap.get(genre.getFilmId()).getGenres().add(genresMap.get(genre.getGenreId()));
+        }
+
         return filmsMap.values();
     }
 
     @Override
-    public Optional<Film> getById(Long id) {
-        Optional<Film> optFilm = findOne(SELECT_BY_ID_QUERY, id);
-        optFilm.ifPresent(film -> film.setLikes(getLikesForFilmId(id)));
-        return optFilm;
+    public Optional<FilmDto> getById(Long id) {
+        Optional<Film> film = findOne(SELECT_BY_ID_QUERY, id);
+
+        if (film.isEmpty()) {
+            return Optional.empty();
+        }
+
+        FilmDto dto = FilmDtoMapper.mapToFilmDto(film.get());
+
+        RatingDto rating = ratingStorage.getById(film.get().getRatingId()).orElseThrow(
+                () -> new NotFoundException(String.format("Рейтинг с id %d не найден", film.get().getRatingId()))
+        );
+        dto.setMpa(rating);
+
+        dto.setLikes(getLikesForFilmId(id));
+        dto.setGenres(getGenresForFilmId(id));
+
+        return Optional.of(dto);
     }
 
     @Override
-    public Film create(Film object) {
-        Long ratingId = null;
+    public FilmDto create(FilmDto object) {
+        RatingDto rating = null;
         if (object.getMpa() != null) {
-            ratingId = ratingStorage.getById(object.getMpa().getId()).orElseThrow(
+            rating = ratingStorage.getById(object.getMpa().getId()).orElseThrow(
                     () -> new NotFoundException(String.format("Рейтинг с id %d не найден", object.getMpa().getId()))
-            ).getId();
+            );
+            object.setMpa(rating);
         }
         long id = insert(
                 INSERT_FILM_QUERY,
                 object.getName(),
-                ratingId,
+                rating == null ? null : rating.getId(),
                 object.getDescription(),
                 Timestamp.from(object.getReleaseDate().atStartOfDay(ZoneId.systemDefault()).toInstant()),
                 object.getDuration()
         );
         object.setId(id);
+
+        if (object.getGenres() != null && !object.getGenres().isEmpty()) {
+
+            List<Long> genreIds = object.getGenres().stream().map(GenreDto::getId).toList();
+
+            Optional<Long> missedId = genreStorage.checkGenreIds(genreIds);
+            if (missedId.isPresent()) {
+                throw new NotFoundException(String.format("Жанр с id '%d' не найден", missedId.get()));
+            }
+
+            Collection<GenreDto> genreDtos = genreStorage.getAllFromCollection(genreIds);
+
+            genreStorage.createForFilm(object.getId(), genreIds);
+            object.setGenres(genreDtos);
+        }
+
+
+
+
         return object;
     }
 
     @Override
-    public Film update(Film object) {
+    public FilmDto update(FilmDto object) {
         Long ratingId = null;
         if (object.getMpa() != null) {
             ratingId = ratingStorage.getById(object.getMpa().getId()).orElseThrow(
@@ -100,7 +152,7 @@ public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
     }
 
     @Override
-    public void addLike(Film film, User user) {
+    public void addLike(FilmDto film, User user) {
         if (!film.getLikes().contains(user.getId())) {
             update(ADD_LIKE_QUERY, user.getId(), film.getId());
             film.getLikes().add(user.getId());
@@ -108,7 +160,7 @@ public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
     }
 
     @Override
-    public void removeLike(Film film, User user) {
+    public void removeLike(FilmDto film, User user) {
         if (film.getLikes().contains(user.getId())) {
             update(REMOVE_LIKE_QUERY, user.getId(), film.getId());
             film.getLikes().remove(user.getId());
@@ -116,18 +168,18 @@ public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
     }
 
     @Override
-    public Collection<Film> getTopLikes(int size) {
+    public Collection<FilmDto> getTopLikes(int size) {
         String getTopQuery = "SELECT * FROM film WHERE film_id IN " +
                 "(SELECT film_id FROM \"like\" " +
                 "GROUP BY film_id ORDER BY COUNT(user_id) DESC LIMIT ?)";
 
         List<Film> filmsList = findMany(getTopQuery, size);
-        Map<Long, Film> films = createMap(filmsList);
+        Map<Long, FilmDto> films = createFilmsMap(filmsList);
 
         String getLikesQuery = "SELECT * FROM \"like\" WHERE film_id IN (%s)";
 
         String filmIds  = films.values().stream()
-                .map(Film::getId)
+                .map(FilmDto::getId)
                 .map(String::valueOf)
                 .collect(Collectors.joining(", "));
 
@@ -138,20 +190,38 @@ public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
         }
 
         return films.values().stream().sorted(
-                Comparator.comparingInt(film -> ((Film) film).getLikes().size()).reversed()
+                Comparator.comparingInt(film -> ((FilmDto) film).getLikes().size()).reversed()
         ).toList();
 
     }
 
-    private Collection<Long> getLikesForFilmId(Long filmId) {
+    private List<Long> getLikesForFilmId(Long filmId) {
         return jdbc.queryForList(SELECT_LIKES_BY_FILM_ID_QUERY, Long.class, filmId);
     }
 
-    private Map<Long, Film> createMap(List<Film> films) {
-        Map<Long, Film> map = new HashMap<>();
+    private List<GenreDto> getGenresForFilmId(Long filmId) {
+
+        var getGenreIdsQuery = "SELECT * FROM genre WHERE genre_id IN " +
+                "(SELECT genre_id FROM film_genre WHERE film_id = ?)";
+
+        return jdbc.query(getGenreIdsQuery, new GenreDtoRowMapper(), filmId);
+    }
+
+    private Map<Long, FilmDto> createFilmsMap(List<Film> films) {
+        Map<Long, FilmDto> map = new HashMap<>();
 
         for (Film film : films) {
-            map.put(film.getId(), film);
+            map.put(film.getId(), FilmDtoMapper.mapToFilmDto(film));
+        }
+
+        return map;
+    }
+
+    private Map<Long, GenreDto> createGenresMap(List<GenreDto> genres) {
+        Map<Long, GenreDto> map = new HashMap<>();
+
+        for (GenreDto genre : genres) {
+            map.put(genre.getId(), genre);
         }
 
         return map;
