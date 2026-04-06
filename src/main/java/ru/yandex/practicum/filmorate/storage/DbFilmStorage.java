@@ -80,10 +80,12 @@ public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
 
         FilmDto dto = FilmDtoMapper.mapToFilmDto(film.get());
 
-        RatingDto rating = ratingStorage.getById(film.get().getRatingId()).orElseThrow(
-                () -> new NotFoundException(String.format("Рейтинг с id %d не найден", film.get().getRatingId()))
-        );
-        dto.setMpa(rating);
+        if (film.get().getRatingId() != 0) {
+            RatingDto rating = ratingStorage.getById(film.get().getRatingId()).orElseThrow(
+                    () -> new NotFoundException(String.format("Рейтинг с id %d не найден", film.get().getRatingId()))
+            );
+            dto.setMpa(rating);
+        }
 
         dto.setLikes(getLikesForFilmId(id));
         dto.setGenres(getGenresForFilmId(id));
