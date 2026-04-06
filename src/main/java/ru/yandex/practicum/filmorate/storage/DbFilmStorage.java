@@ -125,9 +125,6 @@ public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
             object.setGenres(genreDtos);
         }
 
-
-
-
         return object;
     }
 
