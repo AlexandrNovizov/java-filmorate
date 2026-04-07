@@ -49,6 +49,18 @@ public class FilmService {
         FilmDto dto = filmStorage.create(film);
         if (film.getGenres() == null) {
             dto.setGenres(new HashSet<>());
+        } else if (!film.getGenres().isEmpty()) {
+            List<Long> genreIds = film.getGenres().stream().map(GenreDto::getId).toList();
+
+            Optional<Long> missedId = genreStorage.checkGenreIds(genreIds);
+            if (missedId.isPresent()) {
+                throw new NotFoundException(String.format("Жанр с id '%d' не найден", missedId.get()));
+            }
+
+            Collection<GenreDto> genreDtos = genreStorage.getAllFromCollection(genreIds);
+
+            genreStorage.createForFilm(film.getId(), genreIds);
+            film.setGenres(genreDtos);
         }
         if (film.getLikes() == null) {
             dto.setLikes(new HashSet<>());

@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
 
     private final RatingStorage ratingStorage;
-    private final GenreStorage genreStorage;
 
     private static final String SELECT_ALL_QUERY =
             "SELECT film_id, film_name, description, duration, " +
@@ -45,11 +44,10 @@ public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
     public DbFilmStorage(
             JdbcTemplate jdbc,
             RowMapper<Film> filmMapper,
-            RowMapper<RatingDto> ratingMapper,
-            RowMapper<GenreDto> genreMapper) {
+            RowMapper<RatingDto> ratingMapper) {
+
         super(jdbc, filmMapper);
         ratingStorage = new DbRatingStorage(jdbc, ratingMapper);
-        genreStorage = new DbGenreStorage(jdbc, genreMapper);
     }
 
     @Override
@@ -114,21 +112,6 @@ public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
                 object.getDuration()
         );
         object.setId(id);
-
-        if (object.getGenres() != null && !object.getGenres().isEmpty()) {
-
-            List<Long> genreIds = object.getGenres().stream().map(GenreDto::getId).toList();
-
-            Optional<Long> missedId = genreStorage.checkGenreIds(genreIds);
-            if (missedId.isPresent()) {
-                throw new NotFoundException(String.format("Жанр с id '%d' не найден", missedId.get()));
-            }
-
-            Collection<GenreDto> genreDtos = genreStorage.getAllFromCollection(genreIds);
-
-            genreStorage.createForFilm(object.getId(), genreIds);
-            object.setGenres(genreDtos);
-        }
 
         return object;
     }
