@@ -202,7 +202,7 @@ class DbFilmStorageTest {
         filmStorage.addLike(films[2], users[2]);
         filmStorage.addLike(films[4], users[2]);
 
-        Collection<FilmDto> topLikes = filmStorage.getTopLikes(topLikesSize);
+        Collection<FilmDto> topLikes = filmStorage.getTopLiked(topLikesSize);
 
         assertEquals(3, topLikes.size());
 

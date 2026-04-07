@@ -40,6 +40,9 @@ public class DbGenreStorage extends BaseRepository<GenreDto> implements GenreSto
 
     @Override
     public Optional<Long> checkGenreIds(Collection<Long> genreIds) {
+        if (genreIds.isEmpty()) {
+            return Optional.empty();
+        }
         String idPlaceholders = String.join(
                 ",", Collections.nCopies(genreIds.size(), "(?)")
         );

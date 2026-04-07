@@ -14,7 +14,7 @@ import java.sql.Timestamp;
 import java.time.ZoneId;
 import java.util.*;
 
-@Repository("userDB")
+@Repository
 public class DbUserStorage extends BaseRepository<User> implements UserStorage {
 
     private static final String SELECT_ALL_QUERY = "SELECT * FROM \"user\"";

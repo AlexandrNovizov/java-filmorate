@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.model;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import ru.yandex.practicum.filmorate.dto.RatingDto;
 
 import java.time.LocalDate;
 
@@ -22,7 +23,11 @@ public class Film {
 
     private LocalDate releaseDate;
 
-    private Long ratingId;
+    @Builder.Default
+    private Long ratingId = null;
+
+    @Builder.Default
+    private String ratingName = null;
 
     private int duration;
 }

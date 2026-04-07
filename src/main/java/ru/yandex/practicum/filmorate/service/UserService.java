@@ -20,7 +20,7 @@ public class UserService {
     private final UserStorage storage;
     private final Validator<User> validator;
 
-    public UserService(@Qualifier("userDB") UserStorage storage, Validator<User> validator) {
+    public UserService(UserStorage storage, Validator<User> validator) {
         this.storage = storage;
         this.validator = validator;
     }

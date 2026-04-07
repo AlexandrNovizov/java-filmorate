@@ -17,14 +17,20 @@ import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Repository("filmDB")
+@Repository
 public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
 
     private final RatingStorage ratingStorage;
     private final GenreStorage genreStorage;
 
-    private static final String SELECT_ALL_QUERY = "SELECT * FROM film";
-    private static final String SELECT_BY_ID_QUERY = "SELECT * FROM film WHERE film_id = ?";
+    private static final String SELECT_ALL_QUERY =
+            "SELECT film_id, film_name, description, duration, " +
+            "NULLIF(f.rating_id, 0) AS mpa_id, release_date, r.rating_name AS mpa_name " +
+            "FROM film AS f LEFT JOIN rating AS r ON f.rating_id = r.rating_id";
+    private static final String SELECT_BY_ID_QUERY =
+            "SELECT film_id, film_name, description, duration, " +
+                    "NULLIF(f.rating_id, 0) AS mpa_id, release_date, r.rating_name AS mpa_name " +
+                    "FROM film AS f LEFT JOIN rating AS r ON f.rating_id = r.rating_id WHERE film_id = ?";
     private static final String SELECT_LIKES_BY_FILM_ID_QUERY = "SELECT user_id FROM \"like\" WHERE film_id = ?";
 
     private static final String INSERT_FILM_QUERY = "INSERT INTO film " +
@@ -80,11 +86,8 @@ public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
 
         FilmDto dto = FilmDtoMapper.mapToFilmDto(film.get());
 
-        if (film.get().getRatingId() != 0) {
-            RatingDto rating = ratingStorage.getById(film.get().getRatingId()).orElseThrow(
-                    () -> new NotFoundException(String.format("Рейтинг с id %d не найден", film.get().getRatingId()))
-            );
-            dto.setMpa(rating);
+        if (film.get().getRatingName() == null && film.get().getRatingId() != null) {
+            throw new NotFoundException(String.format("Рейтинг с id %d не найден", film.get().getRatingId()));
         }
 
         dto.setLikes(getLikesForFilmId(id));
@@ -133,7 +136,7 @@ public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
     @Override
     public FilmDto update(FilmDto object) {
         Long ratingId = null;
-        if (object.getMpa() != null) {
+        if (object.getMpa() != null && object.getMpa().getId() != null) {
             ratingId = ratingStorage.getById(object.getMpa().getId()).orElseThrow(
                     () -> new NotFoundException(String.format("Рейтинг с id %d не найден", object.getMpa().getId()))
             ).getId();
@@ -167,10 +170,11 @@ public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
     }
 
     @Override
-    public Collection<FilmDto> getTopLikes(int size) {
-        String getTopQuery = "SELECT * FROM film WHERE film_id IN " +
-                "(SELECT film_id FROM \"like\" " +
+    public Collection<FilmDto> getTopLiked(int size) {
+        String conidtion = " WHERE film_id IN " +
+        "(SELECT film_id FROM \"like\" " +
                 "GROUP BY film_id ORDER BY COUNT(user_id) DESC LIMIT ?)";
+        String getTopQuery = SELECT_ALL_QUERY + conidtion;
 
         List<Film> filmsList = findMany(getTopQuery, size);
         Map<Long, FilmDto> films = createFilmsMap(filmsList);
@@ -185,7 +189,9 @@ public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
         List<LikeDto> likes = jdbc.query(String.format(getLikesQuery, filmIds), new LikeDtoRowMapper());
 
         for (LikeDto dto : likes) {
-            films.get(dto.getFilmId()).getLikes().add(dto.getUserId());
+            if (dto.getFilmId() != null && dto.getUserId() != null) {
+                films.get(dto.getFilmId()).getLikes().add(dto.getUserId());
+            }
         }
 
         return films.values().stream().sorted(

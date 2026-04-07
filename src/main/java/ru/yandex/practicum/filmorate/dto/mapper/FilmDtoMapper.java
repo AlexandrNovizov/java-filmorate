@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.dto.mapper;
 
 import ru.yandex.practicum.filmorate.dto.FilmDto;
+import ru.yandex.practicum.filmorate.dto.RatingDto;
 import ru.yandex.practicum.filmorate.model.Film;
 
 public class FilmDtoMapper {
@@ -14,6 +15,14 @@ public class FilmDtoMapper {
         dto.setReleaseDate(film.getReleaseDate());
         dto.setDuration(film.getDuration());
 
+        if (film.getRatingId() == null && film.getRatingName() == null) {
+            dto.setMpa(null);
+        } else {
+            RatingDto ratingDto = new RatingDto();
+            ratingDto.setId(film.getRatingId());
+            ratingDto.setName(film.getRatingName());
+            dto.setMpa(ratingDto);
+        }
         return dto;
     }
 
@@ -24,10 +33,12 @@ public class FilmDtoMapper {
                 .description(dto.getDescription())
                 .duration(dto.getDuration())
                 .releaseDate(dto.getReleaseDate())
-                .ratingId(null);
+                .ratingId(null)
+                .ratingName(null);
 
         if (dto.getMpa() != null) {
             builder.ratingId(dto.getMpa().getId());
+            builder.ratingName(dto.getMpa().getName());
         }
         return builder.build();
     }
