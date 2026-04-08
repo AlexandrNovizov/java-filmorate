@@ -65,7 +65,8 @@ public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
                 jdbc.query("SELECT * FROM genre", new GenreDtoRowMapper())
         );
 
-        List<FilmGenreDto> genres = jdbc.query("SELECT * FROM film_genre", new FilmGenreDtoRowMapper());
+        List<FilmGenreDto> genres = jdbc.query("SELECT g.genre_id as genre_id, genre_name, film_id FROM film_genre fg JOIN genre g" +
+                " ON fg.genre_id = g.genre_id", new FilmGenreDtoRowMapper());
 
         for (FilmGenreDto genre : genres) {
             filmsMap.get(genre.getFilmId()).getGenres().add(genresMap.get(genre.getGenreId()));
@@ -172,7 +173,8 @@ public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
         List<LikeDto> likes = jdbc.query(String.format(getLikesQuery, filmIds), new LikeDtoRowMapper());
 
         for (LikeDto dto : likes) {
-            if (dto.getFilmId() != null && dto.getUserId() != null) {
+
+            if (films.containsKey(dto.getFilmId())) {
                 films.get(dto.getFilmId()).getLikes().add(dto.getUserId());
             }
         }

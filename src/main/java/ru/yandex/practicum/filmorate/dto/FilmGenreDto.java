@@ -7,4 +7,5 @@ public class FilmGenreDto {
 
     private Long filmId;
     private Long genreId;
+    private String genreName;
 }

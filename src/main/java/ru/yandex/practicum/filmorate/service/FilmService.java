@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dto.FilmDto;
+import ru.yandex.practicum.filmorate.dto.FilmGenreDto;
 import ru.yandex.practicum.filmorate.dto.GenreDto;
 import ru.yandex.practicum.filmorate.dto.mapper.FilmDtoMapper;
 import ru.yandex.practicum.filmorate.exception.InvalidParameterException;
@@ -100,24 +101,11 @@ public class FilmService {
 
         Collection<FilmDto> topLiked = filmStorage.getTopLiked(size);
 
-        Set<Long> genreIds = getUniqueGenreIds(topLiked);
-
-        Optional<Long> optNotFoundGenre = genreStorage.checkGenreIds(genreIds);
-        optNotFoundGenre.ifPresent(notFoundGenreId -> {
-            throw new NotFoundException(String.format("Жанр с id '%d' не найден", notFoundGenreId));
-        });
-
-        Map<Long, GenreDto> genresMap = createGenresMap(
-                genreStorage.getAllFromCollection(genreIds).stream().toList()
-        );
+        Map<Long, List<GenreDto>> genresMap = genreStorage.allGenresByFilms();
 
         for (FilmDto filmDto : topLiked) {
 
-            List<GenreDto> filmGenres = new ArrayList<>(
-                    filmDto.getGenres().stream()
-                        .map(genreDto -> genresMap.get(genreDto.getId()))
-                        .toList()
-            );
+            List<GenreDto> filmGenres = genresMap.getOrDefault(filmDto.getId(), new ArrayList<>());
 
             Comparator<GenreDto> genreDtoComparator = Comparator.comparingLong(GenreDto::getId);
             filmGenres.sort(genreDtoComparator);

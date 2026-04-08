@@ -13,6 +13,7 @@ public class FilmGenreDtoRowMapper implements RowMapper<FilmGenreDto> {
         FilmGenreDto dto = new FilmGenreDto();
         dto.setFilmId(rs.getLong("film_id"));
         dto.setGenreId(rs.getLong("genre_id"));
+        dto.setGenreName(rs.getString("genre_name"));
         return dto;
     }
 }
