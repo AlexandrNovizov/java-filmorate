@@ -132,29 +132,4 @@ public class FilmService {
         }
     }
 
-    private Set<Long> getUniqueGenreIds(Collection<FilmDto> filmDtos) {
-        Set<Long> resultSet = new HashSet<>();
-
-        for (FilmDto dto : filmDtos) {
-            if (dto.getGenres() != null) {
-                resultSet.addAll(
-                        dto.getGenres().stream()
-                                .map(GenreDto::getId)
-                                .toList()
-                );
-            }
-        }
-
-        return resultSet;
-    }
-
-    private Map<Long, GenreDto> createGenresMap(List<GenreDto> genres) {
-        Map<Long, GenreDto> map = new HashMap<>();
-
-        for (GenreDto genre : genres) {
-            map.put(genre.getId(), genre);
-        }
-
-        return map;
-    }
 }
