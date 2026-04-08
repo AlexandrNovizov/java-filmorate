@@ -3,18 +3,14 @@ package ru.yandex.practicum.filmorate.model;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.ToString;
 
 import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * Film.
  */
 @Data
 @EqualsAndHashCode(of = "id")
-@ToString(exclude = "likes")
 @Builder(toBuilder = true)
 public class Film {
 
@@ -26,8 +22,11 @@ public class Film {
 
     private LocalDate releaseDate;
 
-    private int duration;
+    @Builder.Default
+    private Long ratingId = null;
 
     @Builder.Default
-    private Set<Long> likes = new HashSet<>();
+    private String ratingName = null;
+
+    private int duration;
 }

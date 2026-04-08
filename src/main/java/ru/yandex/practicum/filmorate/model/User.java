@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -25,4 +26,8 @@ public class User {
 
     @Builder.Default
     private Set<Long> friends = new HashSet<>();
+
+    public void setFriends(Collection<Long> friends) {
+        this.friends = new HashSet<>(friends);
+    }
 }

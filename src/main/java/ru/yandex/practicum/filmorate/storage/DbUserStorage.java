@@ -1,0 +1,194 @@
+package ru.yandex.practicum.filmorate.storage;
+
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.dto.FriendshipDto;
+import ru.yandex.practicum.filmorate.dto.FriendshipStatusDto;
+import ru.yandex.practicum.filmorate.dto.mapper.FriendshipDtoMapper;
+import ru.yandex.practicum.filmorate.dto.mapper.FriendshipStatusDtoMapper;
+import ru.yandex.practicum.filmorate.model.FriendshipStatusEnum;
+import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.mapper.FriendshipRowMapper;
+import ru.yandex.practicum.filmorate.storage.mapper.FriendshipStatusRowMapper;
+
+import java.sql.Timestamp;
+import java.time.ZoneId;
+import java.util.*;
+
+@Repository
+public class DbUserStorage extends BaseRepository<User> implements UserStorage {
+
+    private static final String SELECT_ALL_QUERY = "SELECT * FROM \"user\"";
+    private static final String SELECT_BY_ID_QUERY = "SELECT * FROM \"user\" WHERE user_id = ?";
+    private static final String SELECT_FRIENDS_BY_ID_QUERY = "SELECT friend_id FROM friend " +
+            "WHERE user_id = ? AND status_id IN (SELECT status_id FROM status WHERE status_name <> 'REJECTED')";
+
+    private static final String INSERT_USER_QUERY = "INSERT INTO \"user\"(email, login, name, birthday) " +
+            "VALUES (?, ?, ?, ?)";
+    private static final String UPDATE_USER_QUERY = "UPDATE \"user\" SET " +
+            "email = ?, login = ?, name = ?, birthday = ? WHERE user_id = ?";
+
+    private static final String SELECT_ALL_FRIENDS_QUERY = "SELECT * FROM \"user\" WHERE user_id IN (%s)";
+    private static final String SELECT_COMMON_FRIENDS_QUERY = "SELECT user_id, email, login, name, birthday " +
+            "FROM (SELECT friend_id FROM friend WHERE user_id = ? AND status_id IN ( " +
+            "SELECT status_id FROM status WHERE status_name <> 'REJECTED')) AS f1 " +
+            "INNER JOIN (" +
+            "SELECT friend_id FROM friend WHERE user_id = ? AND status_id IN (" +
+            "SELECT status_id FROM status WHERE status_name <> 'REJECTED')) AS f2 " +
+            "ON f1.friend_id = f2.friend_id " +
+            "INNER JOIN \"user\" ON \"user\".user_id = f1.friend_id";
+
+    private static final String SELECT_FRIENDSHIP_STATUSES_QUERY = "SELECT * FROM status";
+    private static final String ADD_TO_FRIENDS_QUERY = "INSERT INTO friend(user_id, friend_id, status_id) VALUES" +
+            " (?, ?, ?)";
+    private static final String REMOVE_FROM_FRIENDS_QUERY = "DELETE FROM friend " +
+            "WHERE user_id = ? AND friend_id = ?";
+
+    private static final FriendshipStatusRowMapper FRIENDSHIP_STATUS_ROW_MAPPER = new FriendshipStatusRowMapper();
+    private static final FriendshipRowMapper friendshipRowMapper = new FriendshipRowMapper();
+
+    public DbUserStorage(JdbcTemplate jdbc, RowMapper<User> mapper) {
+        super(jdbc, mapper);
+    }
+
+    @Override
+    public Collection<User> getAll() {
+        Map<Long, User> allUsers = createMap(findMany(SELECT_ALL_QUERY));
+
+        String getFriendshipsQuery = "SELECT * FROM friend f JOIN status s ON f.status_id = s.status_id";
+
+        List<FriendshipDto> friendships = jdbc.query(getFriendshipsQuery, friendshipRowMapper).stream()
+                .map(FriendshipDtoMapper::mapToFriendshipDto)
+                .toList();
+
+        for (var friendship: friendships) {
+            if (allUsers.containsKey(friendship.getUserId())) {
+                allUsers.get(friendship.getUserId()).getFriends().add(friendship.getFriendId());
+            }
+        }
+
+        return allUsers.values();
+    }
+
+    @Override
+    public Optional<User> getById(Long id) {
+        Optional<User> optUser = findOne(SELECT_BY_ID_QUERY, id);
+        optUser.ifPresent(user -> user.setFriends(getFriendsForUserId(id)));
+        return optUser;
+    }
+
+    @Override
+    public User create(User object) {
+        Long id = insert(
+                INSERT_USER_QUERY,
+                object.getEmail(),
+                object.getLogin(),
+                object.getName(),
+                Timestamp.from(object.getBirthday().atStartOfDay(ZoneId.systemDefault()).toInstant())
+        );
+        object.setId(id);
+        return object;
+    }
+
+    @Override
+    public User update(User object) {
+        update(
+                UPDATE_USER_QUERY,
+                object.getEmail(),
+                object.getLogin(),
+                object.getName(),
+                Timestamp.from(object.getBirthday().atStartOfDay(ZoneId.systemDefault()).toInstant()),
+                object.getId()
+        );
+        return object;
+    }
+
+    @Override
+    public void addToFriends(User user1, User user2) {
+        Map<FriendshipStatusEnum, Long> statuses = getAllStatuses();
+
+        String updateFriendshipQuery = "UPDATE friend SET status_id = " +
+                "(SELECT status_id from status WHERE status_name = 'ACCEPTED') " +
+                "WHERE user_id = ? AND friend_id = ?";
+
+        int updatedRows = jdbc.update(updateFriendshipQuery, user2.getId(), user1.getId());
+
+        if (updatedRows == 0) {
+            jdbc.update(
+                    ADD_TO_FRIENDS_QUERY,
+                    user1.getId(),
+                    user2.getId(),
+                    statuses.get(FriendshipStatusEnum.PENDING)
+            );
+        }
+        // TODO: move this to service
+        user1.getFriends().add(user2.getId());
+    }
+
+    @Override
+    public void removeFromFriends(User user1, User user2) {
+        int removedRows = jdbc.update(
+                REMOVE_FROM_FRIENDS_QUERY,
+                user1.getId(),
+                user2.getId()
+        );
+
+        if (removedRows > 0) {
+            String updateQuery = "UPDATE friend SET status_id = " +
+                    "(SELECT status_id FROM status WHERE status_name = 'DELETED') " +
+                    "WHERE user_id = ? AND friend_id = ?";
+
+            jdbc.update(updateQuery, user2.getId(), user1.getId());
+        }
+        // TODO: move this to service
+        user1.getFriends().remove(user2.getId());
+    }
+
+    @Override
+    public Collection<User> getFriends(User user) {
+        String ids = String.join(",", Collections.nCopies(user.getFriends().size(), "?"));
+
+        return jdbc.query(
+                String.format(SELECT_ALL_FRIENDS_QUERY, ids),
+                mapper,
+                user.getFriends().toArray()
+        );
+    }
+
+    @Override
+    public Collection<User> getCommonFriends(User user1, User user2) {
+        return jdbc.query(
+                SELECT_COMMON_FRIENDS_QUERY,
+                mapper,
+                user1.getId(),
+                user2.getId()
+        );
+    }
+
+    private Collection<Long> getFriendsForUserId(Long userId) {
+        return jdbc.queryForList(SELECT_FRIENDS_BY_ID_QUERY, Long.class, userId);
+    }
+
+    private Map<FriendshipStatusEnum, Long> getAllStatuses() {
+        Map<FriendshipStatusEnum, Long> result = new HashMap<>();
+        List<FriendshipStatusDto> dtos = jdbc.query(SELECT_FRIENDSHIP_STATUSES_QUERY, FRIENDSHIP_STATUS_ROW_MAPPER).stream()
+                .map(FriendshipStatusDtoMapper::mapToFriendshipStatusDto)
+                .toList();
+        for (var dto: dtos) {
+            result.put(dto.getStatus(), dto.getId());
+        }
+
+        return result;
+    }
+
+    private Map<Long, User> createMap(List<User> users) {
+        Map<Long, User> map = new HashMap<>();
+
+        for (User user : users) {
+            map.put(user.getId(), user);
+        }
+
+        return map;
+    }
+}
