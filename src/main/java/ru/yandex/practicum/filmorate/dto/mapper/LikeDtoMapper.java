@@ -3,7 +3,7 @@ package ru.yandex.practicum.filmorate.dto.mapper;
 import ru.yandex.practicum.filmorate.dto.LikeDto;
 import ru.yandex.practicum.filmorate.model.Like;
 
-public class LikeMapper {
+public class LikeDtoMapper {
 
     public static LikeDto mapToLikeDto(Like entity) {
         LikeDto dto = new LikeDto();

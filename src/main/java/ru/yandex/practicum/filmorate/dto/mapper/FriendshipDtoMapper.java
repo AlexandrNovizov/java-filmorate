@@ -3,7 +3,7 @@ package ru.yandex.practicum.filmorate.dto.mapper;
 import ru.yandex.practicum.filmorate.dto.FriendshipDto;
 import ru.yandex.practicum.filmorate.model.Friendship;
 
-public class FriendshipMapper {
+public class FriendshipDtoMapper {
 
     public static FriendshipDto mapToFriendshipDto(Friendship entity) {
         FriendshipDto dto = new FriendshipDto();

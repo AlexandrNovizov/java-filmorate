@@ -5,7 +5,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dto.FriendshipDto;
 import ru.yandex.practicum.filmorate.dto.FriendshipStatusDto;
-import ru.yandex.practicum.filmorate.dto.mapper.FriendshipMapper;
+import ru.yandex.practicum.filmorate.dto.mapper.FriendshipDtoMapper;
 import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.mapper.FriendshipRowMapper;
@@ -58,7 +58,7 @@ public class DbUserStorage extends BaseRepository<User> implements UserStorage {
         String getFriendshipsQuery = "SELECT * FROM friend f JOIN status s ON f.status_id = s.status_id";
 
         List<FriendshipDto> friendships = jdbc.query(getFriendshipsQuery, friendshipRowMapper).stream()
-                .map(FriendshipMapper::mapToFriendshipDto)
+                .map(FriendshipDtoMapper::mapToFriendshipDto)
                 .toList();
 
         for (var friendship: friendships) {

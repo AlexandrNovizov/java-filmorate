@@ -3,7 +3,7 @@ package ru.yandex.practicum.filmorate.dto.mapper;
 import ru.yandex.practicum.filmorate.dto.FilmGenreDto;
 import ru.yandex.practicum.filmorate.model.FilmGenre;
 
-public class FilmGenreMapper {
+public class FilmGenreDtoMapper {
 
     public static FilmGenreDto mapToFilmGenreDto(FilmGenre entity) {
         FilmGenreDto dto = new FilmGenreDto();
