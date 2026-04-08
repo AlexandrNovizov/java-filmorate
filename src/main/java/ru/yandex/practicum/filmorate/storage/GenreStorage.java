@@ -1,6 +1,5 @@
 package ru.yandex.practicum.filmorate.storage;
 
-import ru.yandex.practicum.filmorate.dto.FilmGenreDto;
 import ru.yandex.practicum.filmorate.dto.GenreDto;
 
 import java.util.Collection;
