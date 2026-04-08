@@ -6,10 +6,11 @@ import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dto.FriendshipDto;
 import ru.yandex.practicum.filmorate.dto.FriendshipStatusDto;
 import ru.yandex.practicum.filmorate.dto.mapper.FriendshipDtoMapper;
-import ru.yandex.practicum.filmorate.model.FriendshipStatus;
+import ru.yandex.practicum.filmorate.dto.mapper.FriendshipStatusDtoMapper;
+import ru.yandex.practicum.filmorate.model.FriendshipStatusEnum;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.mapper.FriendshipRowMapper;
-import ru.yandex.practicum.filmorate.storage.mapper.FriendshipStatusMapper;
+import ru.yandex.practicum.filmorate.storage.mapper.FriendshipStatusRowMapper;
 
 import java.sql.Timestamp;
 import java.time.ZoneId;
@@ -44,7 +45,7 @@ public class DbUserStorage extends BaseRepository<User> implements UserStorage {
     private static final String REMOVE_FROM_FRIENDS_QUERY = "DELETE FROM friend " +
             "WHERE user_id = ? AND friend_id = ?";
 
-    private static final FriendshipStatusMapper friendshipStatusMapper = new FriendshipStatusMapper();
+    private static final FriendshipStatusRowMapper FRIENDSHIP_STATUS_ROW_MAPPER = new FriendshipStatusRowMapper();
     private static final FriendshipRowMapper friendshipRowMapper = new FriendshipRowMapper();
 
     public DbUserStorage(JdbcTemplate jdbc, RowMapper<User> mapper) {
@@ -105,7 +106,7 @@ public class DbUserStorage extends BaseRepository<User> implements UserStorage {
 
     @Override
     public void addToFriends(User user1, User user2) {
-        Map<FriendshipStatus, Long> statuses = getAllStatuses();
+        Map<FriendshipStatusEnum, Long> statuses = getAllStatuses();
 
         String updateFriendshipQuery = "UPDATE friend SET status_id = " +
                 "(SELECT status_id from status WHERE status_name = 'ACCEPTED') " +
@@ -118,7 +119,7 @@ public class DbUserStorage extends BaseRepository<User> implements UserStorage {
                     ADD_TO_FRIENDS_QUERY,
                     user1.getId(),
                     user2.getId(),
-                    statuses.get(FriendshipStatus.PENDING)
+                    statuses.get(FriendshipStatusEnum.PENDING)
             );
         }
         // TODO: move this to service
@@ -169,9 +170,11 @@ public class DbUserStorage extends BaseRepository<User> implements UserStorage {
         return jdbc.queryForList(SELECT_FRIENDS_BY_ID_QUERY, Long.class, userId);
     }
 
-    private Map<FriendshipStatus, Long> getAllStatuses() {
-        Map<FriendshipStatus, Long> result = new HashMap<>();
-        List<FriendshipStatusDto> dtos = jdbc.query(SELECT_FRIENDSHIP_STATUSES_QUERY, friendshipStatusMapper);
+    private Map<FriendshipStatusEnum, Long> getAllStatuses() {
+        Map<FriendshipStatusEnum, Long> result = new HashMap<>();
+        List<FriendshipStatusDto> dtos = jdbc.query(SELECT_FRIENDSHIP_STATUSES_QUERY, FRIENDSHIP_STATUS_ROW_MAPPER).stream()
+                .map(FriendshipStatusDtoMapper::mapToFriendshipStatusDto)
+                .toList();
         for (var dto: dtos) {
             result.put(dto.getStatus(), dto.getId());
         }

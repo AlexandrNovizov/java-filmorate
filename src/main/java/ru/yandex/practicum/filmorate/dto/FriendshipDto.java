@@ -1,12 +1,12 @@
 package ru.yandex.practicum.filmorate.dto;
 
 import lombok.Data;
-import ru.yandex.practicum.filmorate.model.FriendshipStatus;
+import ru.yandex.practicum.filmorate.model.FriendshipStatusEnum;
 
 @Data
 public class FriendshipDto {
 
     private Long userId;
     private Long friendId;
-    private FriendshipStatus status;
+    private FriendshipStatusEnum status;
 }

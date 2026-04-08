@@ -1,5 +1,9 @@
 package ru.yandex.practicum.filmorate.model;
 
-public enum FriendshipStatus {
-    ACCEPTED, PENDING, REJECTED, DELETED;
+import lombok.Data;
+
+@Data
+public class FriendshipStatus {
+    private long id;
+    private FriendshipStatusEnum status;
 }
