@@ -5,12 +5,15 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dto.*;
 import ru.yandex.practicum.filmorate.dto.mapper.FilmDtoMapper;
+import ru.yandex.practicum.filmorate.dto.mapper.FilmGenreMapper;
+import ru.yandex.practicum.filmorate.dto.mapper.GenreDtoMapper;
+import ru.yandex.practicum.filmorate.dto.mapper.LikeMapper;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.storage.mapper.FilmGenreDtoRowMapper;
-import ru.yandex.practicum.filmorate.storage.mapper.GenreDtoRowMapper;
-import ru.yandex.practicum.filmorate.storage.mapper.LikeDtoRowMapper;
+import ru.yandex.practicum.filmorate.storage.mapper.FilmGenreRowMapper;
+import ru.yandex.practicum.filmorate.storage.mapper.GenreRowMapper;
+import ru.yandex.practicum.filmorate.storage.mapper.LikeRowMapper;
 
 import java.sql.Timestamp;
 import java.time.ZoneId;
@@ -55,18 +58,24 @@ public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
         Map<Long, FilmDto> filmsMap = createFilmsMap(findMany(SELECT_ALL_QUERY));
         String getAllLikesQuery = "SELECT * FROM \"like\"";
 
-        List<LikeDto> likes = jdbc.query(getAllLikesQuery, new LikeDtoRowMapper());
+        List<LikeDto> likes = jdbc.query(getAllLikesQuery, new LikeRowMapper()).stream()
+                .map(LikeMapper::mapToLikeDto)
+                .toList();
 
         for (LikeDto like : likes) {
             filmsMap.get(like.getFilmId()).getLikes().add(like.getUserId());
         }
 
         Map<Long, GenreDto> genresMap = createGenresMap(
-                jdbc.query("SELECT * FROM genre", new GenreDtoRowMapper())
+                jdbc.query("SELECT * FROM genre", new GenreRowMapper()).stream()
+                        .map(GenreDtoMapper::mapToGenreDto)
+                        .toList()
         );
 
         List<FilmGenreDto> genres = jdbc.query("SELECT g.genre_id as genre_id, genre_name, film_id FROM film_genre fg JOIN genre g" +
-                " ON fg.genre_id = g.genre_id", new FilmGenreDtoRowMapper());
+                " ON fg.genre_id = g.genre_id", new FilmGenreRowMapper()).stream()
+                .map(FilmGenreMapper::mapToFilmGenreDto)
+                .toList();
 
         for (FilmGenreDto genre : genres) {
             filmsMap.get(genre.getFilmId()).getGenres().add(genresMap.get(genre.getGenreId()));
@@ -170,7 +179,9 @@ public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
                 .map(String::valueOf)
                 .collect(Collectors.joining(", "));
 
-        List<LikeDto> likes = jdbc.query(String.format(getLikesQuery, filmIds), new LikeDtoRowMapper());
+        List<LikeDto> likes = jdbc.query(String.format(getLikesQuery, filmIds), new LikeRowMapper()).stream()
+                .map(LikeMapper::mapToLikeDto)
+                .toList();
 
         for (LikeDto dto : likes) {
 
@@ -194,7 +205,9 @@ public class DbFilmStorage extends BaseRepository<Film> implements FilmStorage {
         var getGenreIdsQuery = "SELECT * FROM genre WHERE genre_id IN " +
                 "(SELECT genre_id FROM film_genre WHERE film_id = ?)";
 
-        return jdbc.query(getGenreIdsQuery, new GenreDtoRowMapper(), filmId);
+        return jdbc.query(getGenreIdsQuery, new GenreRowMapper(), filmId).stream()
+                .map(GenreDtoMapper::mapToGenreDto)
+                .toList();
     }
 
     private Map<Long, FilmDto> createFilmsMap(List<Film> films) {

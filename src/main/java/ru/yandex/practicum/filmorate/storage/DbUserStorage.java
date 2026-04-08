@@ -5,9 +5,10 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dto.FriendshipDto;
 import ru.yandex.practicum.filmorate.dto.FriendshipStatusDto;
+import ru.yandex.practicum.filmorate.dto.mapper.FriendshipMapper;
 import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.storage.mapper.FriendshipDtoMapper;
+import ru.yandex.practicum.filmorate.storage.mapper.FriendshipRowMapper;
 import ru.yandex.practicum.filmorate.storage.mapper.FriendshipStatusMapper;
 
 import java.sql.Timestamp;
@@ -44,7 +45,7 @@ public class DbUserStorage extends BaseRepository<User> implements UserStorage {
             "WHERE user_id = ? AND friend_id = ?";
 
     private static final FriendshipStatusMapper friendshipStatusMapper = new FriendshipStatusMapper();
-    private static final FriendshipDtoMapper friendshipDtoMapper = new FriendshipDtoMapper();
+    private static final FriendshipRowMapper friendshipRowMapper = new FriendshipRowMapper();
 
     public DbUserStorage(JdbcTemplate jdbc, RowMapper<User> mapper) {
         super(jdbc, mapper);
@@ -56,7 +57,9 @@ public class DbUserStorage extends BaseRepository<User> implements UserStorage {
 
         String getFriendshipsQuery = "SELECT * FROM friend f JOIN status s ON f.status_id = s.status_id";
 
-        List<FriendshipDto> friendships = jdbc.query(getFriendshipsQuery, friendshipDtoMapper);
+        List<FriendshipDto> friendships = jdbc.query(getFriendshipsQuery, friendshipRowMapper).stream()
+                .map(FriendshipMapper::mapToFriendshipDto)
+                .toList();
 
         for (var friendship: friendships) {
             if (allUsers.containsKey(friendship.getUserId())) {

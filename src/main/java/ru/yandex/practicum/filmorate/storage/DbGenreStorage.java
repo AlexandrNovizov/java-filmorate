@@ -6,9 +6,10 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dto.FilmGenreDto;
 import ru.yandex.practicum.filmorate.dto.GenreDto;
+import ru.yandex.practicum.filmorate.dto.mapper.FilmGenreMapper;
 import ru.yandex.practicum.filmorate.dto.mapper.GenreDtoMapper;
 import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.storage.mapper.FilmGenreDtoRowMapper;
+import ru.yandex.practicum.filmorate.storage.mapper.FilmGenreRowMapper;
 
 import java.util.*;
 
@@ -85,7 +86,9 @@ public class DbGenreStorage extends BaseRepository<Genre> implements GenreStorag
         String selectGenresQuery = "SELECT g.genre_id AS genre_id, film_id, genre_name FROM genre g JOIN film_genre fg " +
                 "ON g.genre_id = fg.genre_id";
 
-        List<FilmGenreDto> genres = jdbc.query(selectGenresQuery, new FilmGenreDtoRowMapper());
+        List<FilmGenreDto> genres = jdbc.query(selectGenresQuery, new FilmGenreRowMapper()).stream()
+                .map(FilmGenreMapper::mapToFilmGenreDto)
+                .toList();
 
         Map<Long, List<GenreDto>> map = new HashMap<>();
 
